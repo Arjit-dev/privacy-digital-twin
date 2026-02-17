@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const twinSchema = new mongoose.Schema({
+  userId: String,
   name: String,
   email: String,
 

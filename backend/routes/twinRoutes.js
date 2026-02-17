@@ -11,18 +11,20 @@ router.post("/create", async (req, res) => {
   try {
     const data = { ...req.body };
 
+    // Extract userId
+    const userId = data.userId;
+
     // Auto-detect password strength
     if (data.password) {
       data.passwordStrength = checkPasswordStrength(data.password);
-      delete data.password; // do not store raw password
+      delete data.password; // never store raw password
     }
 
-    // Rule-based risk
+    // Rule-based risk calculation
     const risk = calculateRisk(data);
 
     // ML prediction
     let mlRiskLevel = "Unavailable";
-
     try {
       const mlResponse = await axios.post(
         "http://127.0.0.1:8000/predict",
@@ -33,8 +35,9 @@ router.post("/create", async (req, res) => {
       console.log("ML server not reachable");
     }
 
-    // Create twin
+    // Create twin linked to user
     const twin = new Twin({
+      userId,
       ...data,
       riskScore: risk.riskScore,
       riskLevel: risk.riskLevel
@@ -53,10 +56,10 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// Get all twins
-router.get("/", async (req, res) => {
+// Get twins for a specific user
+router.get("/user/:userId", async (req, res) => {
   try {
-    const twins = await Twin.find();
+    const twins = await Twin.find({ userId: req.params.userId });
     res.json(twins);
   } catch (err) {
     res.status(500).json({ error: err.message });
