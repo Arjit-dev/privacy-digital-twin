@@ -1,5 +1,14 @@
 import { useState } from "react";
 import axios from "axios";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ResponsiveContainer
+} from "recharts";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -34,19 +43,17 @@ function App() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
 
-  // Fetch history
   const fetchHistory = async (userId) => {
     try {
       const res = await axios.get(
         `http://localhost:5000/api/twins/user/${userId}`
       );
       setHistory(res.data);
-    } catch (err) {
+    } catch {
       console.log("Error fetching history");
     }
   };
 
-  // Login
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -65,7 +72,6 @@ function App() {
     }
   };
 
-  // Signup
   const handleSignup = async (e) => {
     e.preventDefault();
     try {
@@ -80,7 +86,6 @@ function App() {
     }
   };
 
-  // Form input
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
@@ -89,7 +94,6 @@ function App() {
     });
   };
 
-  // Submit twin
   const handleSubmit = async (e) => {
     e.preventDefault();
     const userId = localStorage.getItem("userId");
@@ -111,170 +115,264 @@ function App() {
     setIsLoggedIn(false);
   };
 
+  const chartData = history.map((item, index) => ({
+    name: `Sim ${index + 1}`,
+    score: item.riskScore
+  }));
+
   // LOGIN / SIGNUP VIEW
   if (!isLoggedIn) {
     return (
-      <div style={{ padding: "20px", fontFamily: "Arial" }}>
-        {!showSignup ? (
-          <>
-            <h2>Login</h2>
-            <form onSubmit={handleLogin}>
-              <input
-                placeholder="Email"
-                onChange={(e) =>
-                  setLoginData({ ...loginData, email: e.target.value })
-                }
-                required
-              />
-              <br /><br />
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-2xl shadow-lg w-80">
+          {!showSignup ? (
+            <>
+              <h2 className="text-xl font-semibold mb-4">Login</h2>
+              <form onSubmit={handleLogin} className="space-y-3">
+                <input
+                  className="w-full border p-2 rounded"
+                  placeholder="Email"
+                  onChange={(e) =>
+                    setLoginData({ ...loginData, email: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  className="w-full border p-2 rounded"
+                  type="password"
+                  placeholder="Password"
+                  onChange={(e) =>
+                    setLoginData({ ...loginData, password: e.target.value })
+                  }
+                  required
+                />
+                <button className="w-full bg-black text-white py-2 rounded">
+                  Login
+                </button>
+              </form>
 
-              <input
-                type="password"
-                placeholder="Password"
-                onChange={(e) =>
-                  setLoginData({ ...loginData, password: e.target.value })
-                }
-                required
-              />
-              <br /><br />
+              <p className="mt-4 text-sm">
+                No account?{" "}
+                <button
+                  className="text-blue-600"
+                  onClick={() => setShowSignup(true)}
+                >
+                  Signup
+                </button>
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-semibold mb-4">Signup</h2>
+              <form onSubmit={handleSignup} className="space-y-3">
+                <input
+                  className="w-full border p-2 rounded"
+                  placeholder="Name"
+                  onChange={(e) =>
+                    setSignupData({ ...signupData, name: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  className="w-full border p-2 rounded"
+                  placeholder="Email"
+                  onChange={(e) =>
+                    setSignupData({ ...signupData, email: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  className="w-full border p-2 rounded"
+                  type="password"
+                  placeholder="Password"
+                  onChange={(e) =>
+                    setSignupData({ ...signupData, password: e.target.value })
+                  }
+                  required
+                />
+                <button className="w-full bg-black text-white py-2 rounded">
+                  Signup
+                </button>
+              </form>
 
-              <button type="submit">Login</button>
-            </form>
-
-            <p>
-              No account?{" "}
-              <button onClick={() => setShowSignup(true)}>
-                Signup
-              </button>
-            </p>
-          </>
-        ) : (
-          <>
-            <h2>Signup</h2>
-            <form onSubmit={handleSignup}>
-              <input
-                placeholder="Name"
-                onChange={(e) =>
-                  setSignupData({ ...signupData, name: e.target.value })
-                }
-                required
-              />
-              <br /><br />
-
-              <input
-                placeholder="Email"
-                onChange={(e) =>
-                  setSignupData({ ...signupData, email: e.target.value })
-                }
-                required
-              />
-              <br /><br />
-
-              <input
-                type="password"
-                placeholder="Password"
-                onChange={(e) =>
-                  setSignupData({ ...signupData, password: e.target.value })
-                }
-                required
-              />
-              <br /><br />
-
-              <button type="submit">Signup</button>
-            </form>
-
-            <p>
-              Already have an account?{" "}
-              <button onClick={() => setShowSignup(false)}>
-                Login
-              </button>
-            </p>
-          </>
-        )}
+              <p className="mt-4 text-sm">
+                Already have an account?{" "}
+                <button
+                  className="text-blue-600"
+                  onClick={() => setShowSignup(false)}
+                >
+                  Login
+                </button>
+              </p>
+            </>
+          )}
+        </div>
       </div>
     );
   }
 
-  // DASHBOARD VIEW
+  // DASHBOARD
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>Privacy Digital Twin Dashboard</h1>
-      <button onClick={handleLogout}>Logout</button>
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-64 bg-white shadow-lg p-6">
+        <h2 className="text-xl font-bold mb-6">Privacy Twin</h2>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          name="name"
-          placeholder="Name"
-          onChange={handleChange}
-          required
-        />
-        <br /><br />
+        <nav className="space-y-3">
+          <p className="font-medium text-gray-700">Dashboard</p>
+          <p className="text-gray-500">History</p>
+          <p className="text-gray-500">Settings</p>
+        </nav>
 
-        <input
-          name="email"
-          placeholder="Email"
-          onChange={handleChange}
-          required
-        />
-        <br /><br />
+        <button
+          onClick={handleLogout}
+          className="mt-10 bg-black text-white px-4 py-2 rounded w-full"
+        >
+          Logout
+        </button>
+      </div>
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Enter password"
-          onChange={handleChange}
-          required
-        />
-        <br /><br />
-
-        <label>
-          Public Profile:
-          <input type="checkbox" name="publicProfile" onChange={handleChange} />
-        </label>
-        <br />
-
-        <label>
-          Location Sharing:
-          <input type="checkbox" name="locationSharing" onChange={handleChange} />
-        </label>
-        <br />
-
-        <label>
-          Third-party Apps:
-          <input type="number" name="thirdPartyApps" onChange={handleChange} />
-        </label>
-        <br /><br />
-
-        <button type="submit">Simulate Privacy Risk</button>
-      </form>
-
-      {result && (
-        <div style={{ marginTop: "30px" }}>
-          <h2>Risk Score: {result.twin.riskScore}</h2>
-          <h3>Risk Level: {result.twin.riskLevel}</h3>
-          <h3>AI Predicted Risk: {result.mlRiskLevel}</h3>
-
-          <h4>Suggestions:</h4>
-          <ul>
-            {result.suggestions.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
+      {/* Main Content */}
+      <div className="flex-1 p-8 space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold">
+            Privacy Risk Dashboard
+          </h1>
+          <p className="text-gray-500">
+            Monitor and simulate your privacy posture
+          </p>
         </div>
-      )}
 
-      {history.length > 0 && (
-        <div style={{ marginTop: "30px" }}>
-          <h3>Previous Simulations</h3>
-          <ul>
-            {history.map((item, index) => (
-              <li key={index}>
-                Score: {item.riskScore} – Level: {item.riskLevel}
-              </li>
-            ))}
-          </ul>
+        {/* Simulation Form Card */}
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-2 gap-4"
+          >
+            <input
+              name="name"
+              placeholder="Name"
+              onChange={handleChange}
+              className="border p-2 rounded"
+              required
+            />
+
+            <input
+              name="email"
+              placeholder="Email"
+              onChange={handleChange}
+              className="border p-2 rounded"
+              required
+            />
+
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              onChange={handleChange}
+              className="border p-2 rounded col-span-2"
+              required
+            />
+
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="publicProfile" onChange={handleChange} />
+              Public Profile
+            </label>
+
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="locationSharing" onChange={handleChange} />
+              Location Sharing
+            </label>
+
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="twoFactorAuth" onChange={handleChange} />
+              Two-Factor Authentication
+            </label>
+
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="publicWifiUsage" onChange={handleChange} />
+              Public Wi-Fi Usage
+            </label>
+
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="deviceEncrypted" onChange={handleChange} />
+              Device Encrypted
+            </label>
+
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="autoUpdates" onChange={handleChange} />
+              Auto Updates Enabled
+            </label>
+
+            <input
+              type="number"
+              name="thirdPartyApps"
+              placeholder="Number of third-party apps"
+              onChange={handleChange}
+              className="border p-2 rounded col-span-2"
+            />
+
+            <button className="bg-black text-white py-2 rounded col-span-2">
+              Simulate Risk
+            </button>
+          </form>
         </div>
-      )}
+
+        {/* Result Cards */}
+        {result && (
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl shadow">
+              <h4 className="text-gray-500">Risk Score</h4>
+              <h2 className="text-4xl font-bold">
+                {result.twin.riskScore}
+              </h2>
+              <p>{result.twin.riskLevel}</p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow">
+              <h4 className="text-gray-500">AI Prediction</h4>
+              <h2 className="text-4xl font-bold">
+                {result.mlRiskLevel}
+              </h2>
+            </div>
+          </div>
+        )}
+
+        {/* Suggestions Card */}
+        {result && result.suggestions && (
+          <div className="bg-white p-6 rounded-2xl shadow">
+            <h4 className="text-lg font-semibold mb-3">
+              Suggestions
+            </h4>
+            <ul className="space-y-2">
+              {result.suggestions.map((s, i) => (
+                <li key={i} className="bg-gray-100 p-2 rounded">
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Graph Card */}
+        {history.length > 1 && (
+          <div className="bg-white p-6 rounded-2xl shadow">
+            <h3 className="mb-4 font-semibold">Risk Trend</h3>
+            <div style={{ width: "100%", height: 300 }}>
+              <ResponsiveContainer>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="score" stroke="#ef4444" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
