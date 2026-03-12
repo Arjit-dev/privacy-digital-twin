@@ -5,8 +5,9 @@ const axios = require("axios");
 const Twin = require("../models/twin");
 const calculateRisk = require("../riskEngine");
 const checkPasswordStrength = require("../passwordStrength");
+const scanWebsite = require("../websiteScanner"); // NEW
 
-// Create twin with rule-based + ML prediction
+// Create twin with rule-based + ML prediction + website scan
 router.post("/create", async (req, res) => {
   try {
     const data = { ...req.body };
@@ -20,16 +21,29 @@ router.post("/create", async (req, res) => {
       delete data.password; // never store raw password
     }
 
+    // WEBSITE SCANNING
+    let websiteScan = null;
+
+    if (data.websiteURL) {
+      try {
+        websiteScan = await scanWebsite(data.websiteURL);
+      } catch (err) {
+        console.log("Website scan failed");
+      }
+    }
+
     // Rule-based risk calculation
     const risk = calculateRisk(data);
 
     // ML prediction
     let mlRiskLevel = "Unavailable";
+
     try {
       const mlResponse = await axios.post(
         "http://127.0.0.1:8000/predict",
         data
       );
+
       mlRiskLevel = mlResponse.data.mlRiskLevel;
     } catch (mlErr) {
       console.log("ML server not reachable");
@@ -39,6 +53,7 @@ router.post("/create", async (req, res) => {
     const twin = new Twin({
       userId,
       ...data,
+      websiteScan,
       riskScore: risk.riskScore,
       riskLevel: risk.riskLevel
     });
@@ -48,7 +63,7 @@ router.post("/create", async (req, res) => {
     res.json({
       twin,
       suggestions: risk.suggestions,
-      mlRiskLevel: mlRiskLevel
+      mlRiskLevel
     });
 
   } catch (err) {

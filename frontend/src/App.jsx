@@ -1,3 +1,5 @@
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
 import { useState } from "react";
 import axios from "axios";
 import {
@@ -31,6 +33,7 @@ function App() {
     name: "",
     email: "",
     password: "",
+    websiteURL: "",
     publicProfile: false,
     locationSharing: false,
     thirdPartyApps: 0,
@@ -120,7 +123,6 @@ function App() {
     score: item.riskScore
   }));
 
-  // LOGIN / SIGNUP VIEW
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -211,10 +213,8 @@ function App() {
     );
   }
 
-  // DASHBOARD
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
       <div className="w-64 bg-white shadow-lg p-6">
         <h2 className="text-xl font-bold mb-6">Privacy Twin</h2>
 
@@ -232,9 +232,7 @@ function App() {
         </button>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 p-8 space-y-6">
-        {/* Header */}
         <div>
           <h1 className="text-2xl font-bold">
             Privacy Risk Dashboard
@@ -244,7 +242,6 @@ function App() {
           </p>
         </div>
 
-        {/* Simulation Form Card */}
         <div className="bg-white p-6 rounded-2xl shadow">
           <form
             onSubmit={handleSubmit}
@@ -273,6 +270,15 @@ function App() {
               onChange={handleChange}
               className="border p-2 rounded col-span-2"
               required
+            />
+
+            {/* WEBSITE SCAN INPUT */}
+            <input
+              type="text"
+              name="websiteURL"
+              placeholder="Website to scan (example.com)"
+              onChange={handleChange}
+              className="border p-2 rounded col-span-2"
             />
 
             <label className="flex items-center gap-2">
@@ -319,27 +325,86 @@ function App() {
           </form>
         </div>
 
-        {/* Result Cards */}
         {result && (
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-2xl shadow">
-              <h4 className="text-gray-500">Risk Score</h4>
-              <h2 className="text-4xl font-bold">
-                {result.twin.riskScore}
-              </h2>
-              <p>{result.twin.riskLevel}</p>
-            </div>
+  <div className="grid grid-cols-2 gap-6">
 
-            <div className="bg-white p-6 rounded-2xl shadow">
-              <h4 className="text-gray-500">AI Prediction</h4>
-              <h2 className="text-4xl font-bold">
-                {result.mlRiskLevel}
-              </h2>
-            </div>
+    {/* Risk Score Gauge */}
+    <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center">
+      <h4 className="text-gray-500 mb-4">Risk Score</h4>
+
+      <div style={{ width: 120, height: 120 }}>
+        <CircularProgressbar
+          value={result.twin.riskScore}
+          maxValue={100}
+          text={`${result.twin.riskScore}`}
+          styles={buildStyles({
+            textSize: "16px",
+            pathColor:
+              result.twin.riskLevel === "High"
+                ? "#ef4444"
+                : result.twin.riskLevel === "Medium"
+                ? "#eab308"
+                : "#22c55e",
+            textColor: "#111",
+            trailColor: "#eee"
+          })}
+        />
+      </div>
+
+      <p
+        className={`mt-4 font-semibold ${
+          result.twin.riskLevel === "High"
+            ? "text-red-600"
+            : result.twin.riskLevel === "Medium"
+            ? "text-yellow-500"
+            : "text-green-600"
+        }`}
+      >
+        {result.twin.riskLevel}
+      </p>
+    </div>
+
+    {/* AI Prediction */}
+    <div className="bg-white p-6 rounded-2xl shadow">
+      <h4 className="text-gray-500">AI Prediction</h4>
+
+      <h2
+        className={`text-4xl font-bold ${
+          result.mlRiskLevel === "High"
+            ? "text-red-600"
+            : result.mlRiskLevel === "Medium"
+            ? "text-yellow-500"
+            : "text-green-600"
+        }`}
+      >
+        {result.mlRiskLevel}
+      </h2>
+    </div>
+
+  </div>
+)}
+
+        {/* WEBSITE SCAN RESULT */}
+        {result && result.twin.websiteScan && (
+          <div className="bg-white p-6 rounded-2xl shadow">
+            <h3 className="font-semibold mb-3">
+              Website Security Scan
+            </h3>
+
+            <p>
+              Risk Level: {result.twin.websiteScan.websiteRiskLevel}
+            </p>
+
+            <ul className="mt-3 space-y-2">
+              {result.twin.websiteScan.issues.map((issue, i) => (
+                <li key={i} className="bg-gray-100 p-2 rounded">
+                  {issue}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
-        {/* Suggestions Card */}
         {result && result.suggestions && (
           <div className="bg-white p-6 rounded-2xl shadow">
             <h4 className="text-lg font-semibold mb-3">
@@ -355,7 +420,6 @@ function App() {
           </div>
         )}
 
-        {/* Graph Card */}
         {history.length > 1 && (
           <div className="bg-white p-6 rounded-2xl shadow">
             <h3 className="mb-4 font-semibold">Risk Trend</h3>

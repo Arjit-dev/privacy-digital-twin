@@ -5,6 +5,16 @@ const twinSchema = new mongoose.Schema({
   name: String,
   email: String,
 
+  // Website scanned by user
+  websiteURL: String,
+
+  // Website scan results
+  websiteScan: {
+    websiteRiskScore: Number,
+    websiteRiskLevel: String,
+    issues: [String]
+  },
+
   // Profile exposure
   publicProfile: Boolean,
   locationSharing: Boolean,

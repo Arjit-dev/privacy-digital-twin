@@ -1,63 +1,91 @@
-function calculateRisk(twin) {
-  let score = 0;
+function calculateRisk(data) {
+
+  let riskScore = 0;
   let suggestions = [];
 
-  // Weak password
-  if (twin.passwordStrength === "weak") {
-    score += 25;
-    suggestions.push("Use a stronger password");
+  // Profile exposure
+  if (data.publicProfile) {
+    riskScore += 15;
+    suggestions.push("Consider making your profile private.");
   }
 
-  // No 2FA
-  if (!twin.twoFactorAuth) {
-    score += 15;
-    suggestions.push("Enable two-factor authentication");
+  if (data.locationSharing) {
+    riskScore += 10;
+    suggestions.push("Disable unnecessary location sharing.");
   }
 
-  // Public profile
-  if (twin.publicProfile) {
-    score += 20;
-    suggestions.push("Disable public profile visibility");
+  // Third party apps
+  if (data.thirdPartyApps > 5) {
+    riskScore += 15;
+    suggestions.push("Reduce the number of connected third-party apps.");
+  } else if (data.thirdPartyApps > 2) {
+    riskScore += 8;
   }
 
-  // Location sharing
-  if (twin.locationSharing) {
-    score += 15;
-    suggestions.push("Turn off location sharing");
+  // Password strength
+  if (data.passwordStrength === "weak") {
+    riskScore += 25;
+    suggestions.push("Use a stronger password with numbers and symbols.");
   }
 
-  // Too many third-party apps
-  if (twin.thirdPartyApps > 3) {
-    score += 20;
-    suggestions.push("Reduce third-party app access");
+  if (data.passwordStrength === "medium") {
+    riskScore += 10;
   }
 
-  // Public Wi-Fi usage
-  if (twin.publicWifiUsage) {
-    score += 10;
-    suggestions.push("Avoid using public Wi-Fi for sensitive tasks");
+  // Two-factor authentication
+  if (!data.twoFactorAuth) {
+    riskScore += 15;
+    suggestions.push("Enable two-factor authentication for better security.");
   }
 
-  // Device not encrypted
-  if (!twin.deviceEncrypted) {
-    score += 15;
-    suggestions.push("Enable device encryption");
+  // Public WiFi
+  if (data.publicWifiUsage) {
+    riskScore += 10;
+    suggestions.push("Avoid using public WiFi without a VPN.");
   }
 
-  // No auto updates
-  if (!twin.autoUpdates) {
-    score += 10;
-    suggestions.push("Turn on automatic software updates");
+  // Device encryption
+  if (!data.deviceEncrypted) {
+    riskScore += 15;
+    suggestions.push("Enable device encryption.");
+  }
+
+  // Auto updates
+  if (!data.autoUpdates) {
+    riskScore += 10;
+    suggestions.push("Enable automatic security updates.");
+  }
+
+  // WEBSITE RISK INTEGRATION
+  if (data.websiteScan) {
+
+    const siteRisk = data.websiteScan.websiteRiskScore;
+
+    if (siteRisk > 20) {
+      riskScore += 20;
+      suggestions.push("The scanned website has major security issues.");
+    }
+    else if (siteRisk > 10) {
+      riskScore += 10;
+      suggestions.push("The scanned website has moderate security issues.");
+    }
+    else if (siteRisk > 0) {
+      riskScore += 5;
+    }
   }
 
   // Determine risk level
-  let level = "Low";
-  if (score > 30 && score <= 70) level = "Medium";
-  if (score > 70) level = "High";
+  let riskLevel = "Low";
+
+  if (riskScore > 70) {
+    riskLevel = "High";
+  } else if (riskScore > 40) {
+    riskLevel = "Medium";
+  }
 
   return {
-    riskScore: score,
-    riskLevel: level,
+    riskScore,
+    riskLevel,
     suggestions
   };
 }
