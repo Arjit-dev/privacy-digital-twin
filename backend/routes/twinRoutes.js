@@ -5,37 +5,60 @@ const axios = require("axios");
 const Twin = require("../models/twin");
 const calculateRisk = require("../riskEngine");
 const checkPasswordStrength = require("../passwordStrength");
-const scanWebsite = require("../websiteScanner"); // NEW
+const scanWebsite = require("../websiteScanner");
 
-// Create twin with rule-based + ML prediction + website scan
+
+/* =====================================================
+   🔥 1. FROM EXTENSION (Flask → Node → Mongo)
+===================================================== */
+router.post("/from-extension", async (req, res) => {
+  try {
+    console.log("📥 Data from Flask:", req.body);
+    console.log("👤 Saving twin for user:", req.body.userId);  // 🔥 DEBUG
+
+    const twin = new Twin(req.body);
+
+    const saved = await twin.save();
+
+    console.log("🔥 ACTUALLY SAVED:", saved);
+
+    res.json({ message: "Saved from extension" });
+
+  } catch (err) {
+    console.error("❌ Save error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+/* =====================================================
+   🔥 2. CREATE TWIN (Manual / Dashboard Flow)
+===================================================== */
 router.post("/create", async (req, res) => {
   try {
     const data = { ...req.body };
-
-    // Extract userId
     const userId = data.userId;
 
-    // Auto-detect password strength
+    // 🔐 Password strength check
     if (data.password) {
       data.passwordStrength = checkPasswordStrength(data.password);
-      delete data.password; // never store raw password
+      delete data.password;
     }
 
-    // WEBSITE SCANNING
+    // 🌐 Website scan
     let websiteScan = null;
-
     if (data.websiteURL) {
       try {
         websiteScan = await scanWebsite(data.websiteURL);
       } catch (err) {
-        console.log("Website scan failed");
+        console.log("⚠️ Website scan failed");
       }
     }
 
-    // Rule-based risk calculation
+    // 🧠 Rule-based risk
     const risk = calculateRisk(data);
 
-    // ML prediction
+    // 🤖 ML Prediction (Flask)
     let mlRiskLevel = "Unavailable";
 
     try {
@@ -45,11 +68,12 @@ router.post("/create", async (req, res) => {
       );
 
       mlRiskLevel = mlResponse.data.mlRiskLevel;
-    } catch (mlErr) {
-      console.log("ML server not reachable");
+
+    } catch (err) {
+      console.log("⚠️ ML server not reachable");
     }
 
-    // Create twin linked to user
+    // 💾 Save twin
     const twin = new Twin({
       userId,
       ...data,
@@ -58,37 +82,59 @@ router.post("/create", async (req, res) => {
       riskLevel: risk.riskLevel
     });
 
-    await twin.save();
+    const saved = await twin.save();
+
+    console.log("🔥 CREATED TWIN:", saved);
 
     res.json({
-      twin,
+      twin: saved,
       suggestions: risk.suggestions,
       mlRiskLevel
     });
 
   } catch (err) {
+    console.error("❌ CREATE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get twins for a specific user
+
+/* =====================================================
+   🔥 3. GET TWINS BY USER
+===================================================== */
 router.get("/user/:userId", async (req, res) => {
   try {
     const twins = await Twin.find({ userId: req.params.userId });
+
+    console.log("📦 Twins fetched:", twins.length);
+
     res.json(twins);
+
   } catch (err) {
+    console.error("❌ FETCH ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get single twin
+
+/* =====================================================
+   🔥 4. GET SINGLE TWIN
+===================================================== */
 router.get("/:id", async (req, res) => {
   try {
     const twin = await Twin.findById(req.params.id);
+
+    if (!twin) {
+      return res.status(404).json({ error: "Twin not found" });
+    }
+
     res.json(twin);
+
   } catch (err) {
+    console.error("❌ FETCH ONE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 module.exports = router;

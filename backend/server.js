@@ -2,26 +2,34 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+
 const authRoutes = require("./routes/authRoutes");
+const twinRoutes = require("./routes/twinRoutes");
+const profileRoutes = require("./routes/profileRoutes");
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: "*"
+}));
 app.use(express.json());
+
+// 🔗 Routes
 app.use("/api/auth", authRoutes);
-
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Atlas connected"))
-  .catch(err => console.log(err));
-
-const twinRoutes = require("./routes/twinRoutes");
 app.use("/api/twins", twinRoutes);
+app.use("/api/profile", profileRoutes);
+
+// 🔗 Mongo
+mongoose.connect(process.env.MONGO_URI, {
+  dbName: "privacy_twin"
+})
+.then(() => console.log("✅ Mongo connected"))
+.catch(err => console.log(err));
 
 app.get("/", (req, res) => {
-  res.send("Digital Twin Backend Running");
+  res.send("Backend running");
 });
 
-const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(5000, () => {
+  console.log("🚀 Server running on port 5000");
 });
