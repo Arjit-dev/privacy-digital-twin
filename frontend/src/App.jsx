@@ -1,6 +1,6 @@
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   LineChart,
@@ -12,9 +12,82 @@ import {
   ResponsiveContainer
 } from "recharts";
 
+// 🔥 Decode JWT (SINGLE SOURCE OF TRUTH)
+const parseJwt = (token) => {
+  try {
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch {
+    return null;
+  }
+};
+
+// 🔥 Password Strength
+const checkPasswordStrength = (password) => {
+  if (!password) return "weak";
+  if (password.length < 6) return "weak";
+
+  const hasUpper = /[A-Z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*]/.test(password);
+
+  if (hasUpper && hasNumber && hasSpecial) return "strong";
+  return "medium";
+};
+const generateSuggestions = (data) => {
+  const suggestions = [];
+
+  if (data.publicProfile) {
+    suggestions.push("Consider making your profile private.");
+  }
+
+  if (data.locationSharing) {
+    suggestions.push("Disable unnecessary location sharing.");
+  }
+
+  if (data.passwordStrength === "weak") {
+    suggestions.push("Use a stronger password with numbers and symbols.");
+  }
+
+  if (!data.twoFactorAuth) {
+    suggestions.push("Enable two-factor authentication for better security.");
+  }
+
+  if (data.publicWifiUsage) {
+    suggestions.push("Avoid using public WiFi without a VPN.");
+  }
+
+  if (!data.deviceEncrypted) {
+    suggestions.push("Encrypt your device to protect sensitive data.");
+  }
+
+  if (!data.autoUpdates) {
+    suggestions.push("Enable automatic updates to stay protected.");
+  }
+
+  if (data.thirdPartyApps > 20) {
+    suggestions.push("Reduce the number of third-party apps connected.");
+  }
+
+  return suggestions;
+};
+
+// 🔥 Same as extension
+function calculateSiteRisk(url) {
+  if (!url.startsWith("http")) return "Unknown";
+
+  let score = 0;
+  if (url.startsWith("http://")) score += 50;
+  if (url.includes("login") || url.includes("verify")) score += 25;
+  if (url.length > 120) score += 15;
+
+  if (score >= 60) return "High";
+  if (score >= 30) return "Medium";
+  return "Low";
+}
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
-    !!localStorage.getItem("userId")
+    !!localStorage.getItem("token")
   );
   const [showSignup, setShowSignup] = useState(false);
 
@@ -29,33 +102,66 @@ function App() {
     password: ""
   });
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    websiteURL: "",
+  const [twinData, setTwinData] = useState({
     publicProfile: false,
     locationSharing: false,
     thirdPartyApps: 0,
+    password: "",
+    passwordStrength: "weak",
     twoFactorAuth: true,
     publicWifiUsage: false,
     deviceEncrypted: true,
-    autoUpdates: true
+    autoUpdates: true,
+    websiteURL: ""
   });
 
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
 
-  const fetchHistory = async (userId) => {
+  // 🔥 Get userId from token
+  const getUserId = () => {
+    const token = localStorage.getItem("token");
+    const decoded = parseJwt(token);
+    return decoded?.userId;
+  };
+
+  const fetchHistory = async () => {
+    const userId = getUserId();
+    if (!userId) return;
+
     try {
       const res = await axios.get(
         `http://localhost:5000/api/twins/user/${userId}`
       );
       setHistory(res.data);
+      console.log("Fetched history:", res.data);
     } catch {
       console.log("Error fetching history");
     }
   };
+
+  // 🔥 Load profile (Digital Twin)
+  useEffect(() => {
+    const userId = getUserId();
+
+    if (userId) {
+      fetchHistory();
+
+      axios
+        .get(`http://127.0.0.1:5000/api/profile/${userId}`)
+        .then((res) => {
+          if (res.data) {
+            setTwinData({
+              ...res.data,
+              password: "",
+              websiteURL: ""
+            });
+          }
+        })
+        .catch(() => console.log("No profile yet"));
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -65,11 +171,18 @@ function App() {
         loginData
       );
 
+      // 🔥 Store token ONLY
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("userId", res.data.userId);
+
+      // 🔥 Sync token with extension
+      if (window.chrome && chrome.storage) {
+        chrome.storage.local.set({
+          token: res.data.token
+        });
+      }
 
       setIsLoggedIn(true);
-      fetchHistory(res.data.userId);
+      fetchHistory();
     } catch {
       alert("Login failed");
     }
@@ -91,25 +204,98 @@ function App() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
+
+    let updated = {
+      ...twinData,
       [name]: type === "checkbox" ? checked : value
-    });
+    };
+
+    if (name === "password") {
+      updated.passwordStrength = checkPasswordStrength(value);
+    }
+
+    setTwinData(updated);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const userId = localStorage.getItem("userId");
+  // 🔥 SAVE TWIN
+  const saveProfile = async () => {
+    const userId = getUserId();
+
+    const payload = {
+      userId,
+      publicProfile: twinData.publicProfile,
+      locationSharing: twinData.locationSharing,
+      thirdPartyApps: Number(twinData.thirdPartyApps),
+      passwordStrength: twinData.passwordStrength,
+      twoFactorAuth: twinData.twoFactorAuth,
+      publicWifiUsage: twinData.publicWifiUsage,
+      deviceEncrypted: twinData.deviceEncrypted,
+      autoUpdates: twinData.autoUpdates
+    };
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/twins/create",
-        { ...formData, userId }
-      );
-      setResult(res.data);
-      fetchHistory(userId);
+      await axios.post("http://127.0.0.1:5000/api/profile/save", payload);
+      alert("Twin updated successfully");
     } catch {
-      alert("Error submitting data");
+      alert("Error saving twin");
+    }
+  };
+
+  // 🔥 SIMULATE
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const userId = getUserId();
+
+    try {
+      const profileRes = await axios.get(
+        `http://127.0.0.1:5000/api/profile/${userId}`
+      );
+
+      const profile = profileRes.data;
+
+      if (!profile) {
+        alert("Please save your twin first");
+        return;
+      }
+
+      let url = twinData.websiteURL;
+      if (!url.startsWith("http")) {
+        url = "https://" + url;
+      }
+
+      const payload = {
+        userId,
+
+        publicProfile: profile.publicProfile,
+        locationSharing: profile.locationSharing,
+        thirdPartyApps: Number(profile.thirdPartyApps),
+
+        passwordStrength: profile.passwordStrength,
+        twoFactorAuth: profile.twoFactorAuth,
+
+        publicWifiUsage: profile.publicWifiUsage,
+        deviceEncrypted: profile.deviceEncrypted,
+        autoUpdates: profile.autoUpdates,
+
+        url,
+        siteRisk: calculateSiteRisk(url)
+      };
+
+      console.log("📤 Sending:", payload);
+
+      const res = await axios.post(
+        "http://127.0.0.1:8000/predict",
+        payload
+      );
+
+      setResult(res.data);
+      fetchHistory();
+      setSuggestions(generateSuggestions(profile));
+
+    } catch (err) {
+      console.log(err);
+      alert("Error processing request");
     }
   };
 
@@ -123,6 +309,7 @@ function App() {
     score: item.riskScore
   }));
 
+  // 🔐 LOGIN UI
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -196,16 +383,6 @@ function App() {
                   Signup
                 </button>
               </form>
-
-              <p className="mt-4 text-sm">
-                Already have an account?{" "}
-                <button
-                  className="text-blue-600"
-                  onClick={() => setShowSignup(false)}
-                >
-                  Login
-                </button>
-              </p>
             </>
           )}
         </div>
@@ -213,232 +390,182 @@ function App() {
     );
   }
 
+  // 🧠 MAIN DASHBOARD
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <div className="w-64 bg-white shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-6">Privacy Twin</h2>
+  <div className="flex min-h-screen bg-gray-100">
+    
+    {/* Sidebar */}
+    <div className="w-64 bg-white shadow-lg p-6">
+      <h2 className="text-xl font-bold mb-6">Privacy Twin</h2>
 
-        <nav className="space-y-3">
-          <p className="font-medium text-gray-700">Dashboard</p>
-          <p className="text-gray-500">History</p>
-          <p className="text-gray-500">Settings</p>
-        </nav>
+      <button
+        onClick={handleLogout}
+        className="mt-10 bg-black text-white px-4 py-2 rounded w-full hover:bg-gray-800 transition"
+      >
+        Logout
+      </button>
+    </div>
 
-        <button
-          onClick={handleLogout}
-          className="mt-10 bg-black text-white px-4 py-2 rounded w-full"
-        >
-          Logout
-        </button>
-      </div>
+    <div className="flex-1 p-8 space-y-6">
 
-      <div className="flex-1 p-8 space-y-6">
+      {/* 🔥 HEADER */}
+      <div className="bg-white p-6 rounded-2xl shadow-md flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">
-            Privacy Risk Dashboard
-          </h1>
-          <p className="text-gray-500">
-            Monitor and simulate your privacy posture
+          <h2 className="text-xl font-bold">Privacy Dashboard</h2>
+          <p className="text-gray-500 text-sm">
+            Monitor and improve your privacy posture
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow">
-          <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-2 gap-4"
-          >
-            <input
-              name="name"
-              placeholder="Name"
-              onChange={handleChange}
-              className="border p-2 rounded"
-              required
-            />
-
-            <input
-              name="email"
-              placeholder="Email"
-              onChange={handleChange}
-              className="border p-2 rounded"
-              required
-            />
-
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              onChange={handleChange}
-              className="border p-2 rounded col-span-2"
-              required
-            />
-
-            {/* WEBSITE SCAN INPUT */}
-            <input
-              type="text"
-              name="websiteURL"
-              placeholder="Website to scan (example.com)"
-              onChange={handleChange}
-              className="border p-2 rounded col-span-2"
-            />
-
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="publicProfile" onChange={handleChange} />
-              Public Profile
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="locationSharing" onChange={handleChange} />
-              Location Sharing
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="twoFactorAuth" onChange={handleChange} />
-              Two-Factor Authentication
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="publicWifiUsage" onChange={handleChange} />
-              Public Wi-Fi Usage
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="deviceEncrypted" onChange={handleChange} />
-              Device Encrypted
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="autoUpdates" onChange={handleChange} />
-              Auto Updates Enabled
-            </label>
-
-            <input
-              type="number"
-              name="thirdPartyApps"
-              placeholder="Number of third-party apps"
-              onChange={handleChange}
-              className="border p-2 rounded col-span-2"
-            />
-
-            <button className="bg-black text-white py-2 rounded col-span-2">
-              Simulate Risk
-            </button>
-          </form>
+        <div className="text-right">
+          <p className="text-sm text-gray-400">Latest Risk</p>
+          <p className="font-semibold text-lg">
+            {result?.finalRiskLevel || "N/A"}
+          </p>
         </div>
-
-        {result && (
-  <div className="grid grid-cols-2 gap-6">
-
-    {/* Risk Score Gauge */}
-    <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center">
-      <h4 className="text-gray-500 mb-4">Risk Score</h4>
-
-      <div style={{ width: 120, height: 120 }}>
-        <CircularProgressbar
-          value={result.twin.riskScore}
-          maxValue={100}
-          text={`${result.twin.riskScore}`}
-          styles={buildStyles({
-            textSize: "16px",
-            pathColor:
-              result.twin.riskLevel === "High"
-                ? "#ef4444"
-                : result.twin.riskLevel === "Medium"
-                ? "#eab308"
-                : "#22c55e",
-            textColor: "#111",
-            trailColor: "#eee"
-          })}
-        />
       </div>
 
-      <p
-        className={`mt-4 font-semibold ${
-          result.twin.riskLevel === "High"
-            ? "text-red-600"
-            : result.twin.riskLevel === "Medium"
-            ? "text-yellow-500"
-            : "text-green-600"
-        }`}
-      >
-        {result.twin.riskLevel}
-      </p>
+      {/* FORM */}
+      <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            onChange={handleChange}
+            className="border p-2 rounded col-span-2"
+          />
+
+          <p className="text-sm col-span-2">
+            Strength: <b>{twinData.passwordStrength}</b>
+          </p>
+
+          <input
+            type="text"
+            name="websiteURL"
+            placeholder="Website (example.com)"
+            onChange={handleChange}
+            className="border p-2 rounded col-span-2"
+          />
+
+          <label><input type="checkbox" name="publicProfile" onChange={handleChange}/> Public Profile</label>
+          <label><input type="checkbox" name="locationSharing" onChange={handleChange}/> Location Sharing</label>
+          <label><input type="checkbox" name="twoFactorAuth" onChange={handleChange}/> 2FA</label>
+          <label><input type="checkbox" name="publicWifiUsage" onChange={handleChange}/> Public WiFi</label>
+          <label><input type="checkbox" name="deviceEncrypted" onChange={handleChange}/> Device Encrypted</label>
+          <label><input type="checkbox" name="autoUpdates" onChange={handleChange}/> Auto Updates</label>
+
+          <input
+            type="number"
+            name="thirdPartyApps"
+            placeholder="Third-party apps"
+            onChange={handleChange}
+            className="border p-2 rounded col-span-2"
+          />
+
+          <button
+            type="button"
+            onClick={saveProfile}
+            className="bg-blue-600 text-white py-2 rounded col-span-2 hover:bg-blue-700 transition"
+          >
+            Save Twin
+          </button>
+
+          <button className="bg-black text-white py-2 rounded col-span-2 hover:bg-gray-800 transition">
+            Simulate Risk
+          </button>
+        </form>
+      </div>
+
+      {/* RESULT */}
+      {result && (
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition flex flex-col items-center">
+          <h4 className="text-gray-500 mb-4">Risk Score</h4>
+
+          <div style={{ width: 120, height: 120 }}>
+            <CircularProgressbar
+              value={result.riskScore}
+              maxValue={100}
+              text={`${result.riskScore}`}
+              styles={buildStyles({
+                textSize: "16px",
+                pathColor:
+                  result.finalRiskLevel === "High"
+                    ? "#ef4444"
+                    : result.finalRiskLevel === "Medium"
+                    ? "#eab308"
+                    : "#22c55e",
+                textColor: "#111",
+                trailColor: "#eee"
+              })}
+            />
+          </div>
+
+          <p className={`mt-4 font-semibold text-lg ${
+            result.finalRiskLevel === "High"
+              ? "text-red-600"
+              : result.finalRiskLevel === "Medium"
+              ? "text-yellow-500"
+              : "text-green-600"
+          }`}>
+            {result.finalRiskLevel} Risk
+          </p>
+        </div>
+      )}
+
+      {/* 🔥 Suggestions */}
+      {suggestions.length > 0 && (
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
+          <h4 className="text-lg font-semibold mb-3">
+            Suggestions
+          </h4>
+
+          <ul className="space-y-2">
+            {suggestions.map((s, i) => (
+              <li
+                key={i}
+                className="p-3 rounded-lg bg-yellow-50 border-l-4 border-yellow-400 text-sm"
+              >
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 🔥 GRAPH */}
+      {history.length > 0 && (
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
+          <h3 className="mb-4 font-semibold">Risk Trend</h3>
+
+          <div style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer>
+              <LineChart data={history.map((item, index) => ({
+                name: `Sim ${index + 1}`,
+                score: item.riskScore
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  stroke="#ef4444"
+                  strokeWidth={3}
+                  dot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
     </div>
-
-    {/* AI Prediction */}
-    <div className="bg-white p-6 rounded-2xl shadow">
-      <h4 className="text-gray-500">AI Prediction</h4>
-
-      <h2
-        className={`text-4xl font-bold ${
-          result.mlRiskLevel === "High"
-            ? "text-red-600"
-            : result.mlRiskLevel === "Medium"
-            ? "text-yellow-500"
-            : "text-green-600"
-        }`}
-      >
-        {result.mlRiskLevel}
-      </h2>
-    </div>
-
   </div>
-)}
-
-        {/* WEBSITE SCAN RESULT */}
-        {result && result.twin.websiteScan && (
-          <div className="bg-white p-6 rounded-2xl shadow">
-            <h3 className="font-semibold mb-3">
-              Website Security Scan
-            </h3>
-
-            <p>
-              Risk Level: {result.twin.websiteScan.websiteRiskLevel}
-            </p>
-
-            <ul className="mt-3 space-y-2">
-              {result.twin.websiteScan.issues.map((issue, i) => (
-                <li key={i} className="bg-gray-100 p-2 rounded">
-                  {issue}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {result && result.suggestions && (
-          <div className="bg-white p-6 rounded-2xl shadow">
-            <h4 className="text-lg font-semibold mb-3">
-              Suggestions
-            </h4>
-            <ul className="space-y-2">
-              {result.suggestions.map((s, i) => (
-                <li key={i} className="bg-gray-100 p-2 rounded">
-                  {s}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {history.length > 1 && (
-          <div className="bg-white p-6 rounded-2xl shadow">
-            <h3 className="mb-4 font-semibold">Risk Trend</h3>
-            <div style={{ width: "100%", height: 300 }}>
-              <ResponsiveContainer>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="score" stroke="#ef4444" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+);
 }
 
 export default App;
