@@ -15,6 +15,14 @@
     "<all_urls>",
     "http://127.0.0.1:8000/*"
   ],
+  "commands": {
+    "open-popup": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Q"
+      },
+      "description": "Open Privacy Twin"
+    }
+  },
 
   "background": {
     "service_worker": "background.js"

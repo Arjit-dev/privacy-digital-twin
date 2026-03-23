@@ -1,42 +1,104 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+.card-light {
+  position: relative;
+  border-radius: 16px;
+  overflow: visible; /* IMPORTANT */
+  transition: all 0.3s ease;
+}
+input {
+  background-color: rgba(255,255,255,0.1);
 }
 
+/* 🔥 OUTER GLOW (STATIC, NOT CURSOR BASED) */
+.card-light::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  z-index: -1;
+
+  background: radial-gradient(
+    circle,
+    rgba(56, 189, 248, 0.25),
+    transparent 70%
+  );
+
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* SHOW GLOW ON HOVER */
+.card-light:hover::after {
+  opacity: 1;
+}
+
+/* subtle elevation */
+.card-light:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+/* 🔥 BORDER GLOW LAYER */
+.header-glow {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* 🔥 BASE BORDER */
+.header-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* 🔥 GLOW RING */
+.header-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+
+  background:
+    radial-gradient(120px at var(--x) var(--y), rgba(56,189,248,0.6), transparent 70%);
+
+  /* 👇 THIS is the trick */
+  box-shadow: 0 0 20px rgba(56,189,248,0.15);
+
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.header-glow:hover::after {
+  opacity: 1;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.1) inset !important;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  width: 50px;
+  cursor: pointer;
+  transition: transform 0.4s ease;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Rotation animation */
+.logo.rotate {
+  transform: rotateY(180deg);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* DARK MODE */
+body.dark {
+  background-color: #0f172a;
+  color: white;
 }
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+/* LIGHT MODE */
+body.light {
+  background-color: #f8fafc;
+  color: #0f172a;
 }

@@ -22,7 +22,6 @@ function analyzeForm() {
     };
 }
 
-
 // 🎯 Main Popup Function
 function showPopup(siteRisk, userRisk) {
 
@@ -78,72 +77,156 @@ function showPopup(siteRisk, userRisk) {
     else if (userRisk === "Medium") score = 50;
 
     let box = document.createElement("div");
+        box.innerHTML = `
+    <div class="pt-popup">
+        <div class="pt-title">${title}</div>
 
-    box.innerHTML = `
-        <div style="
+        <div class="pt-risk">
+            <div>🌐 <span>Site Risk:</span> <b class="site">${siteRisk}</b></div>
+            <div>👤 <span>User Risk:</span> <b class="user">${userRisk}</b></div>
+        </div>
+
+        <div class="pt-warning">
+            ${warning}
+        </div>
+
+        <div class="pt-bar">
+            <div class="pt-fill" style="width:${score}%"></div>
+        </div>
+        <button id="closePopup" class="pt-btn">Close</button>
+        <div class="pt-link" id="openDashboard">
+    🔍 <span>More insights available</span><br/>
+    <span class="pt-link-action">Visit dashboard →</span>
+</div>
+    </div>
+
+    <style>
+        .pt-popup {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: ${bgColor};
-            color: white;
-            padding: 15px;
-            border-radius: 12px;
-            font-family: Arial, sans-serif;
+            width: 300px;
+            padding: 16px;
+            border-radius: 16px;
+            font-family: system-ui, -apple-system, sans-serif;
             z-index: 9999;
-            width: 270px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            animation: slideIn 0.4s ease;
-        ">
-            <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">
-                ${title}
-            </div>
 
-            <div style="font-size: 14px;">
-                🌐 Site Risk: <b>${siteRisk}</b><br/>
-                👤 User Risk: <b>${userRisk}</b>
-            </div>
+            background: #0f172a;
+            color: #fff;
 
-            <div style="margin-top: 8px; font-size: 13px;">
-                💡 ${warning}
-            </div>
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            animation: ptSlide 0.3s ease;
+        }
 
-            <div style="margin-top: 10px;">
-                <div style="background:#ddd; border-radius:5px;">
-                    <div style="
-                        width:${score}%;
-                        background:white;
-                        height:8px;
-                        border-radius:5px;
-                    "></div>
-                </div>
-            </div>
+        .pt-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
 
-            <button id="closePopup" style="
-                margin-top: 10px;
-                padding: 5px 10px;
-                border: none;
-                background: white;
-                color: black;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 12px;
-            ">
-                Close
-            </button>
-        </div>
+        .pt-risk {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
 
-        <style>
-            @keyframes slideIn {
-                from {
-                    transform: translateY(50px);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateY(0);
-                    opacity: 1;
-                }
+        .pt-risk span {
+            opacity: 0.7;
+        }
+
+        .pt-risk .site {
+            color: ${siteRisk === "High" ? "#ef4444" : "#22c55e"};
+        }
+
+        .pt-risk .user {
+            color: ${
+                userRisk === "High"
+                    ? "#ef4444"
+                    : userRisk === "Medium"
+                    ? "#facc15"
+                    : "#22c55e"
+            };
+        }
+
+        .pt-warning {
+            background: #020617;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .pt-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .pt-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: ${
+                score > 70 ? "#ef4444" : score > 40 ? "#facc15" : "#22c55e"
+            };
+            transition: width 0.4s ease;
+        }
+
+        .pt-btn {
+            width: 100%;
+            padding: 8px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .pt-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+            .pt-link {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-bottom: 10px;
+}
+.pt-link {
+    font-size: 12px;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.pt-link span:first-child {
+    opacity: 0.7;
+}
+
+.pt-link-action {
+    color: #38bdf8;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 2px;
+}
+
+.pt-link-action:hover {
+    text-decoration: underline;
+}
+
+        @keyframes ptSlide {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
             }
-        </style>
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
     `;
 
     document.body.appendChild(box);
@@ -153,6 +236,11 @@ function showPopup(siteRisk, userRisk) {
         box.remove();
         popupExists = false;
     });
+
+    box.querySelector("#openDashboard").addEventListener("click", () => {
+    window.open("http://localhost:5173", "_blank");
+});
+
 
     // ⏱ Auto remove
     setTimeout(() => {

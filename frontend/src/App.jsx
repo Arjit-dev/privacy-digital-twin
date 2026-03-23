@@ -11,6 +11,8 @@ import {
   CartesianGrid,
   ResponsiveContainer
 } from "recharts";
+import { Area } from "recharts";
+import "./App.css";
 
 // 🔥 Decode JWT (SINGLE SOURCE OF TRUTH)
 const parseJwt = (token) => {
@@ -86,6 +88,29 @@ function calculateSiteRisk(url) {
 }
 
 function App() {
+  const [theme, setTheme] = useState(
+    localStorage.getItem("theme") || "dark"
+  );
+  const [rotating, setRotating] = useState(false);
+
+  useEffect(() => {
+  console.log("Theme changed:", theme);
+
+  document.body.classList.remove("dark", "light");
+  document.body.classList.add(theme);
+
+  localStorage.setItem("theme", theme);
+}, [theme]);
+
+  const handleLogoClick = () => {
+    setRotating(true);
+
+    setTimeout(() => {
+      setTheme(prev => (prev === "dark" ? "light" : "dark"));
+      setRotating(false);
+    }, 400); // match animation duration
+  };
+
   const [isLoggedIn, setIsLoggedIn] = useState(
     !!localStorage.getItem("token")
   );
@@ -309,98 +334,118 @@ function App() {
     score: item.riskScore
   }));
 
+  const isDark = theme === "dark";
+
   // 🔐 LOGIN UI
   if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-2xl shadow-lg w-80">
-          {!showSignup ? (
-            <>
-              <h2 className="text-xl font-semibold mb-4">Login</h2>
-              <form onSubmit={handleLogin} className="space-y-3">
-                <input
-                  className="w-full border p-2 rounded"
-                  placeholder="Email"
-                  onChange={(e) =>
-                    setLoginData({ ...loginData, email: e.target.value })
-                  }
-                  required
-                />
-                <input
-                  className="w-full border p-2 rounded"
-                  type="password"
-                  placeholder="Password"
-                  onChange={(e) =>
-                    setLoginData({ ...loginData, password: e.target.value })
-                  }
-                  required
-                />
-                <button className="w-full bg-black text-white py-2 rounded">
-                  Login
-                </button>
-              </form>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#020617] via-[#0f172a] to-[#020617] relative overflow-hidden">
 
-              <p className="mt-4 text-sm">
-                No account?{" "}
-                <button
-                  className="text-blue-600"
-                  onClick={() => setShowSignup(true)}
-                >
-                  Signup
-                </button>
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl font-semibold mb-4">Signup</h2>
-              <form onSubmit={handleSignup} className="space-y-3">
-                <input
-                  className="w-full border p-2 rounded"
-                  placeholder="Name"
-                  onChange={(e) =>
-                    setSignupData({ ...signupData, name: e.target.value })
-                  }
-                  required
-                />
-                <input
-                  className="w-full border p-2 rounded"
-                  placeholder="Email"
-                  onChange={(e) =>
-                    setSignupData({ ...signupData, email: e.target.value })
-                  }
-                  required
-                />
-                <input
-                  className="w-full border p-2 rounded"
-                  type="password"
-                  placeholder="Password"
-                  onChange={(e) =>
-                    setSignupData({ ...signupData, password: e.target.value })
-                  }
-                  required
-                />
-                <button className="w-full bg-black text-white py-2 rounded">
-                  Signup
-                </button>
-              </form>
-            </>
+      {/* 🔥 Background Grid Effect */}
+      <div className="absolute inset-0 opacity-[0.05] bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+
+      {/* 🔥 Subtle Glow Orbs */}
+      <div className="absolute w-[300px] h-[300px] bg-cyan-500/10 blur-3xl rounded-full top-10 left-10"></div>
+      <div className="absolute w-[250px] h-[250px] bg-blue-500/10 blur-3xl rounded-full bottom-10 right-10"></div>
+
+      {/* 🔥 Card */}
+      <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl w-80 text-white">
+
+        {/* 🔐 Title */}
+        <h2 className="text-xl font-semibold mb-6 text-center tracking-wider text-cyan-400">
+          {showSignup ? "Create Profile" : "Login"}
+        </h2>
+
+        {/* 🔐 Form */}
+        <form
+          onSubmit={showSignup ? handleSignup : handleLogin}
+          className="space-y-4"
+        >
+
+          {/* Name (Signup only) */}
+          {showSignup && (
+            <input
+              className="w-full bg-white/10 border border-white/20 text-white placeholder-gray-400 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+              placeholder="Full Name"
+              onChange={(e) =>
+                setSignupData({ ...signupData, name: e.target.value })
+              }
+              required
+            />
           )}
-        </div>
+
+          {/* Email */}
+          <input
+            className="w-full bg-white/10 border border-white/20 text-white placeholder-gray-400 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+            placeholder="Email"
+            onChange={(e) =>
+              showSignup
+                ? setSignupData({ ...signupData, email: e.target.value })
+                : setLoginData({ ...loginData, email: e.target.value })
+            }
+            required
+          />
+
+          {/* Password */}
+          <input
+            type="password"
+            className="w-full bg-white/10 border border-white/20 text-white placeholder-gray-400 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+            placeholder="Password"
+            onChange={(e) =>
+              showSignup
+                ? setSignupData({ ...signupData, password: e.target.value })
+                : setLoginData({ ...loginData, password: e.target.value })
+            }
+            required
+          />
+
+          {/* Button */}
+          <button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 py-3 rounded-xl font-medium hover:scale-[1.02] transition transform shadow-lg shadow-cyan-500/20">
+            {showSignup ? "Create Account" : "Login"}
+          </button>
+        </form>
+
+        {/* 🔁 Toggle */}
+        <p className="mt-5 text-sm text-center text-gray-400">
+          {showSignup ? "Already have an account?" : "No account?"}{" "}
+          <button
+            className="text-cyan-400 hover:underline"
+            onClick={() => setShowSignup(!showSignup)}
+          >
+            {showSignup ? "Login" : "Signup"}
+          </button>
+        </p>
+
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // 🧠 MAIN DASHBOARD
   return (
-  <div className="flex min-h-screen bg-gray-100">
-    
+  <div
+  className={`flex min-h-screen ${
+    theme === "dark"
+      ? "bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#020617] text-white"
+      : "bg-gradient-to-br from-white via-gray-100 to-gray-200 text-black"
+  }`}
+>
     {/* Sidebar */}
-    <div className="w-64 bg-white shadow-lg p-6">
-      <h2 className="text-xl font-bold mb-6">Privacy Twin</h2>
+    <div className="w-64 bg-white/5 backdrop-blur-xl border-r border-white/10 shadow-2xl p-6">
+      <h2 className={`text-xl font-bold mb-6 ${theme === "dark" ? "text-white" : "text-black"} tracking-wide`}><div>
+      <img
+        src={theme === "dark" ? "/dark.png" : "/light.png"}
+        alt="logo"
+        onClick={handleLogoClick}
+        className={`logo ${rotating ? "rotate" : ""}`}
+      />
+    </div>Privacy Twin</h2>
 
       <button
         onClick={handleLogout}
-        className="mt-10 bg-black text-white px-4 py-2 rounded w-full hover:bg-gray-800 transition"
+        className="mt-10 bg-black text-white px-4 py-2 rounded-xl w-full transition-all duration-300
+hover:shadow-[0_0_15px_rgba(239,68,68,0.6)]
+hover:border hover:border-red-500"
       >
         Logout
       </button>
@@ -409,7 +454,7 @@ function App() {
     <div className="flex-1 p-8 space-y-6">
 
       {/* 🔥 HEADER */}
-      <div className="bg-white p-6 rounded-2xl shadow-md flex justify-between items-center">
+      <div className="bg-white/5 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-white/10 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold">Privacy Dashboard</h2>
           <p className="text-gray-500 text-sm">
@@ -419,14 +464,33 @@ function App() {
 
         <div className="text-right">
           <p className="text-sm text-gray-400">Latest Risk</p>
-          <p className="font-semibold text-lg">
-            {result?.finalRiskLevel || "N/A"}
-          </p>
+          <p
+  className={`font-semibold text-lg px-3 py-1 rounded-full inline-block
+    ${
+      result?.finalRiskLevel === "High"
+        ? "text-red-400"
+        : result?.finalRiskLevel === "Medium"
+        ? "text-yellow-400"
+        : "text-green-400"
+    }
+  `}
+  style={{
+    textShadow:
+      result?.finalRiskLevel === "High"
+        ? "0 0 10px rgba(239,68,68,0.8)"
+        : result?.finalRiskLevel === "Medium"
+        ? "0 0 10px rgba(250,204,21,0.8)"
+        : "0 0 10px rgba(34,197,94,0.8)"
+  }}
+>
+  {result?.finalRiskLevel || "N/A"}
+</p>
         </div>
       </div>
 
       {/* FORM */}
-      <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
+      <div className="card-light bg-white/5 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-white/10 hover:shadow-2xl transition">
+      
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
 
           <input
@@ -434,8 +498,9 @@ function App() {
             name="password"
             placeholder="Password"
             onChange={handleChange}
-            className="border p-2 rounded col-span-2"
+            className={`bg-white/10 border border-white/20 ${theme === "dark" ? "text-white" : "text-black"} placeholder-gray-400 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition`}
           />
+
 
           <p className="text-sm col-span-2">
             Strength: <b>{twinData.passwordStrength}</b>
@@ -446,33 +511,59 @@ function App() {
             name="websiteURL"
             placeholder="Website (example.com)"
             onChange={handleChange}
-            className="border p-2 rounded col-span-2"
+            className={`bg-white/10 border border-white/20 ${theme === "dark" ? "text-white" : "text-black"} placeholder-gray-400 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition`}
           />
+          <div className="col-span-2 grid grid-cols-2 gap-y-3 gap-x-10 mt-2">
 
-          <label><input type="checkbox" name="publicProfile" onChange={handleChange}/> Public Profile</label>
-          <label><input type="checkbox" name="locationSharing" onChange={handleChange}/> Location Sharing</label>
-          <label><input type="checkbox" name="twoFactorAuth" onChange={handleChange}/> 2FA</label>
-          <label><input type="checkbox" name="publicWifiUsage" onChange={handleChange}/> Public WiFi</label>
-          <label><input type="checkbox" name="deviceEncrypted" onChange={handleChange}/> Device Encrypted</label>
-          <label><input type="checkbox" name="autoUpdates" onChange={handleChange}/> Auto Updates</label>
+  <label className="flex items-center gap-3 text-sm text-gray-450">
+    <input type="checkbox" name="publicProfile" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    Public Profile
+  </label>
+
+  <label className="flex items-center gap-3 text-sm text-gray-450">
+    <input type="checkbox" name="locationSharing" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    Location Sharing
+  </label>
+
+  <label className="flex items-center gap-3 text-sm text-gray-450">
+    <input type="checkbox" name="twoFactorAuth" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    2FA
+  </label>
+
+  <label className="flex items-center gap-3 text-sm text-gray-450">
+    <input type="checkbox" name="publicWifiUsage" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    Public WiFi
+  </label>
+
+  <label className="flex items-center gap-3 text-sm text-gray-450">
+    <input type="checkbox" name="deviceEncrypted" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    Device Encrypted
+  </label>
+
+  <label className="flex items-center gap-3 text-sm text-gray-450">
+    <input type="checkbox" name="autoUpdates" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    Auto Updates
+  </label>
+
+</div>
 
           <input
             type="number"
             name="thirdPartyApps"
             placeholder="Third-party apps"
             onChange={handleChange}
-            className="border p-2 rounded col-span-2"
+            className={`bg-white/10 border border-white/20 ${theme === "dark" ? "text-white" : "text-black"} placeholder-gray-400 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition`}
           />
 
           <button
             type="button"
             onClick={saveProfile}
-            className="bg-blue-600 text-white py-2 rounded col-span-2 hover:bg-blue-700 transition"
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-2 rounded-xl col-span-2 hover:scale-105 transition transform shadow-lg"
           >
             Save Twin
           </button>
 
-          <button className="bg-black text-white py-2 rounded col-span-2 hover:bg-gray-800 transition">
+          <button className="bg-gradient-to-r from-purple-500 to-pink-600 text-white py-2 rounded-xl col-span-2 hover:scale-105 transition transform shadow-lg">
             Simulate Risk
           </button>
         </form>
@@ -480,89 +571,243 @@ function App() {
 
       {/* RESULT */}
       {result && (
-        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition flex flex-col items-center">
-          <h4 className="text-gray-500 mb-4">Risk Score</h4>
+  <div className="... hover:scale-[1.02] transition bg-white/5 backdrop-blur-lg p-8 rounded-2xl shadow-xl border border-white/10 flex flex-col items-center justify-center relative">
 
-          <div style={{ width: 120, height: 120 }}>
-            <CircularProgressbar
-              value={result.riskScore}
-              maxValue={100}
-              text={`${result.riskScore}`}
-              styles={buildStyles({
-                textSize: "16px",
-                pathColor:
-                  result.finalRiskLevel === "High"
-                    ? "#ef4444"
-                    : result.finalRiskLevel === "Medium"
-                    ? "#eab308"
-                    : "#22c55e",
-                textColor: "#111",
-                trailColor: "#eee"
-              })}
-            />
-          </div>
+    {/* 🔥 Glow Background */}
+    <div
+      className={`absolute w-52 h-52 blur-3xl rounded-full ${
+        result.finalRiskLevel === "High"
+          ? "bg-red-500/20"
+          : result.finalRiskLevel === "Medium"
+          ? "bg-yellow-500/20"
+          : "bg-green-500/20"
+      }`}
+    ></div>
 
-          <p className={`mt-4 font-semibold text-lg ${
-            result.finalRiskLevel === "High"
-              ? "text-red-600"
-              : result.finalRiskLevel === "Medium"
-              ? "text-yellow-500"
-              : "text-green-600"
-          }`}>
-            {result.finalRiskLevel} Risk
-          </p>
-        </div>
-      )}
+    <h3 className={`${theme === "dark" ? "text-white" : "text-black"} mb-4 text-sm tracking-wide`}>
+      Risk Score
+    </h3>
+
+    {/* 🔥 Circular Graph */}
+
+
+<div style={{ width: 140, height: 140 }} className="relative z-10">
+  <CircularProgressbar
+    value={result.riskScore}
+    maxValue={100}
+    text={`${result.riskScore}`}
+    styles={buildStyles({
+      textSize: "18px",
+
+      // 🔴 Risk color stays same (good UX)
+      pathColor:
+        result.finalRiskLevel === "High"
+          ? "#ef4444"
+          : result.finalRiskLevel === "Medium"
+          ? "#facc15"
+          : "#22c55e",
+
+      // 🧠 Theme-based colors
+      textColor: isDark ? "#ffffff" : "#0f172a",
+
+      trailColor: isDark
+        ? "rgba(255,255,255,0.1)"
+        : "rgba(0,0,0,0.1)"
+    })}
+  />
+</div>
+
+    {/* 🔥 Risk Label */}
+    <p
+      className={`mt-5 text-xl font-semibold ${
+        result.finalRiskLevel === "High"
+          ? "text-red-400"
+          : result.finalRiskLevel === "Medium"
+          ? "text-yellow-400"
+          : "text-green-400"
+      }`}
+      style={{
+        textShadow:
+          result.finalRiskLevel === "High"
+            ? "0 0 12px rgba(239,68,68,0.9)"
+            : result.finalRiskLevel === "Medium"
+            ? "0 0 10px rgba(250,204,21,0.7)"
+            : "0 0 8px rgba(34,197,94,0.6)"
+      }}
+    >
+      {result.finalRiskLevel} Risk
+    </p>
+
+  </div>
+)}
 
       {/* 🔥 Suggestions */}
       {suggestions.length > 0 && (
-        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
-          <h4 className="text-lg font-semibold mb-3">
-            Suggestions
-          </h4>
+  <div className="bg-white/5 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-white/10">
 
-          <ul className="space-y-2">
-            {suggestions.map((s, i) => (
-              <li
-                key={i}
-                className="p-3 rounded-lg bg-yellow-50 border-l-4 border-yellow-400 text-sm"
-              >
-                {s}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+    <h4 className={`text-lg font-semibold mb-4 ${theme === "dark" ? "text-white" : "text-black"}`}>
+      Suggestions
+    </h4>
+
+    <ul className="space-y-3">
+      {suggestions.map((s, i) => {
+
+        const getType = (text) => {
+          if (text.toLowerCase().includes("password") || text.toLowerCase().includes("two-factor")) return "high";
+          if (text.toLowerCase().includes("wifi") || text.toLowerCase().includes("apps")) return "medium";
+          return "low";
+        };
+
+        const type = getType(s);
+
+        const styles = {
+          high: "border-red-500 bg-red-500/10 text-red-300",
+          medium: "border-yellow-500 bg-yellow-500/10 text-yellow-300",
+          low: "border-blue-500 bg-blue-500/10 text-blue-300"
+        };
+
+        return (
+          <li
+            key={i}
+            className={`p-4 rounded-xl border-l-4 ${styles[type]} flex items-center gap-3 transition hover:scale-[1.01]`}
+          >
+            <span className="text-lg">
+              {type === "high" ? "🚨" : type === "medium" ? "⚠️" : "ℹ️"}
+            </span>
+
+            <span className="text-sm leading-relaxed">
+              {s}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+
+  </div>
+)}
 
       {/* 🔥 GRAPH */}
-      {history.length > 0 && (
-        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
-          <h3 className="mb-4 font-semibold">Risk Trend</h3>
+{history.length > 0 && (
 
-          <div style={{ width: "100%", height: 300 }}>
-            <ResponsiveContainer>
-              <LineChart data={history.map((item, index) => ({
-                name: `Sim ${index + 1}`,
-                score: item.riskScore
-              }))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
+  <div
+    className="card-light bg-white/5 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-white/10"
+    onMouseMove={(e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      e.currentTarget.style.setProperty("--x", `${e.clientX - rect.left}px`);
+      e.currentTarget.style.setProperty("--y", `${e.clientY - rect.top}px`);
+    }}
+  >
 
-                <Line
-                  type="monotone"
-                  dataKey="score"
-                  stroke="#ef4444"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
+    <h3 className={`mb-4 font-semibold text-lg ${theme === "dark" ? "text-white" : "text-black"}`}>
+      Risk Trend
+    </h3>
+
+    <div style={{ width: "100%", height: 300 }}>
+      <ResponsiveContainer>
+
+        <LineChart
+          data={history.map((item, index) => ({
+            name: `Sim ${index + 1}`,
+            score: item.riskScore
+          }))}
+        >
+
+          {/* 🔥 Gradient (subtle cyan area) */}
+          <defs>
+            <linearGradient id="colorRisk" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+
+          {/* Grid */}
+          <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+
+          {/* Axes */}
+          <XAxis
+            dataKey="name"
+            stroke="#64748b"
+            tick={{ fill: "#94a3b8" }}
+          />
+
+          <YAxis
+            stroke="#64748b"
+            tick={{ fill: "#94a3b8" }}
+          />
+
+          {/* Tooltip */}
+          <Tooltip
+            contentStyle={{
+              background: "rgba(15, 23, 42, 0.95)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "12px",
+              color: "#fff"
+            }}
+            labelStyle={{ color: "#94a3b8" }}
+          />
+
+          {/* Area */}
+          <Area
+            type="monotone"
+            dataKey="score"
+            stroke="none"
+            fill="url(#colorRisk)"
+          />
+
+          {/* 🔥 LINE (constant cyan) */}
+          <Line
+            type="monotone"
+            dataKey="score"
+            stroke="#38bdf8"
+            strokeWidth={3}
+            dot={(props) => {
+              const { cx, cy, payload } = props;
+
+              let color = "#22c55e"; // low
+              if (payload.score > 70) color = "#ef4444"; // high
+              else if (payload.score > 40) color = "#facc15"; // medium
+
+              return (
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={5}
+                  fill={color}
+                  style={{
+                    filter: `drop-shadow(0 0 6px ${color})`
+                  }}
                 />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
+              );
+            }}
+            activeDot={(props) => {
+              const { cx, cy, payload } = props;
 
+              let color = "#22c55e";
+              if (payload.score > 70) color = "#ef4444";
+              else if (payload.score > 40) color = "#facc15";
+
+              return (
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={8}
+                  fill={color}
+                  style={{
+                    filter: `drop-shadow(0 0 10px ${color})`
+                  }}
+                />
+              );
+            }}
+            isAnimationActive={true}
+            animationDuration={800}
+          />
+
+        </LineChart>
+
+      </ResponsiveContainer>
+    </div>
+  </div>
+)}
     </div>
   </div>
 );

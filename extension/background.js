@@ -49,6 +49,11 @@ function calculateSiteRisk(url) {
     if (score >= 30) return "Medium";
     return "Low";
 }
+chrome.commands.onCommand.addListener((command) => {
+    if (command === "open-popup") {
+        chrome.action.openPopup();
+    }
+});
 
 // 🔥 MAIN FLOW
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {

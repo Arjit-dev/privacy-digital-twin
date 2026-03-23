@@ -35,8 +35,6 @@ function showRisk() {
         if (res.latestRisk) {
             document.getElementById("setupStatus").innerHTML = `
                 <div style="margin-top:10px;">
-                    🔥 Risk Level: <b>${res.latestRisk}</b><br>
-                    📊 Score: <b>${res.latestScore}</b>
                 </div>
             `;
         }
@@ -143,6 +141,12 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 
 // 🔹 ON LOAD
 window.onload = async () => {
+    const logo = document.getElementById("openDashboard");
+    if (logo) {
+        logo.addEventListener("click", () => {
+            window.open("http://localhost:5173", "_blank");
+        });
+    }
 
     chrome.storage.local.get(["token"], async (res) => {
 

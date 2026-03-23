@@ -7,46 +7,64 @@
 </head>
 <body>
 
+<!-- 🔐 AUTH SECTION -->
 <div class="container" id="authSection">
+
+    <!-- 🔥 Logo -->
+    <div class="logo-section" id="openDashboard">
+        <img src="icon.png" alt="logo" class="logo-img">
+        <h1 class="logo-text">Privacy Twin</h1>
+    </div>
+
     <h2 id="title">Login</h2>
 
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
+    <div class="form-group">
+        <input type="email" id="email" placeholder="Email" class="fields" />
+        <input type="password" id="password" placeholder="Password" class="fields"/>
+    </div>
 
-    <button id="actionBtn">Login</button>
+    <button id="actionBtn" class="primary-btn">Login</button>
 
-    <p>
+    <p class="toggle-text">
         <span id="toggleMode">Signup</span>
     </p>
 
-    <p id="status"></p>
+    <p id="status" class="status-text"></p>
 </div>
 
 
-<!-- 🔥 SETUP PANEL -->
+<!-- ⚙️ SETUP SECTION -->
 <div class="container" id="setupSection" style="display:none;">
+
+    <!-- 🔥 Logo -->
+    <div class="logo-section">
+        <img src="icon.png" alt="logo" class="logo-img">
+        <h1 class="logo-text">Privacy Twin</h1>
+    </div>
 
     <h2>Privacy Setup</h2>
 
-    <label><input type="checkbox" id="publicProfile"> Public Profile</label>
-    <label><input type="checkbox" id="locationSharing"> Location Sharing</label>
-    <label><input type="checkbox" id="twoFactorAuth"> Two Factor Auth</label>
-    <label><input type="checkbox" id="publicWifiUsage"> Public WiFi Usage</label>
-    <label><input type="checkbox" id="deviceEncrypted"> Device Encrypted</label>
-    <label><input type="checkbox" id="autoUpdates"> Auto Updates</label>
+    <div class="grid">
+    <label><input type="checkbox" id="publicProfile"> <span>Public Profile</span></label>
+    <label><input type="checkbox" id="locationSharing"> <span>Location Sharing</span></label>
+    <label><input type="checkbox" id="twoFactorAuth"> <span>Two Factor Auth</span></label>
+    <label><input type="checkbox" id="publicWifiUsage"> <span>Public WiFi Usage</span></label>
+    <label><input type="checkbox" id="deviceEncrypted"> <span>Device Encrypted</span></label>
+    <label><input type="checkbox" id="autoUpdates"> <span>Auto Updates</span></label>
+</div>
 
-    <input type="number" id="thirdPartyApps" placeholder="No. of Third Party Apps" />
+    <input type="number" id="thirdPartyApps" placeholder="Third Party Apps" />
 
     <select id="passwordStrength">
         <option value="weak">Weak Password</option>
         <option value="strong">Strong Password</option>
     </select>
 
-    <button id="saveProfile">Save Profile</button>
+    <button id="saveProfile" class="primary-btn">Save Profile</button>
 
-    <button id="logoutBtn">Logout</button>
+    <button id="logoutBtn" class="secondary-btn">Logout</button>
 
-    <p id="setupStatus"></p>
+    <p id="setupStatus" class="status-text"></p>
 
 </div>
 
