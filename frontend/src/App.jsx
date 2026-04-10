@@ -323,7 +323,20 @@ function App() {
       alert("Error processing request");
     }
   };
+const clearHistory = async () => {
+  if (!window.confirm("Are you sure you want to clear all history?")) return;
 
+  const userId = getUserId();
+  if (!userId) return;
+
+  try {
+    await axios.delete(`http://localhost:5000/api/twins/user/${userId}`);
+    setHistory([]);
+    alert("History cleared");
+  } catch {
+    alert("Failed to clear history");
+  }
+};
   const handleLogout = () => {
     localStorage.clear();
     setIsLoggedIn(false);
@@ -440,7 +453,51 @@ function App() {
         className={`logo ${rotating ? "rotate" : ""}`}
       />
     </div>Privacy Twin</h2>
+    {/* 🔥 Recent Activity */}
+{/* 🔥 Recent Activity */}
+<div className="mt-8">
+  <h3 className="text-sm font-semibold mb-3 opacity-70">
+    Recent Activity
+  </h3>
 
+  <div className="space-y-2">
+    {history.slice(-5).reverse().map((item, i) => (
+      <div
+        key={i}
+        className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition"
+      >
+
+        {/* LEFT */}
+        <div className="flex items-center gap-2">
+          <span className={
+            item.riskLevel === "High" ? "text-red-400" :
+            item.riskLevel === "Medium" ? "text-yellow-400" :
+            "text-green-400"
+          }>
+            {item.riskLevel}
+          </span>
+
+          <span className="text-xs opacity-60">
+            {item.riskScore}
+          </span>
+        </div>
+
+        {/* RIGHT */}
+        <span className="text-[10px] opacity-50">
+          {new Date(item.createdAt).toLocaleTimeString()}
+        </span>
+      </div>
+    ))}
+  </div>
+</div>
+<button
+  onClick={clearHistory}
+  className="mt-10 bg-black text-white px-4 py-2 rounded-xl w-full transition-all duration-300
+hover:shadow-[0_0_15px_rgba(239,68,68,0.6)]
+hover:border hover:border-yellow-500"
+>
+  Clear History
+</button>
       <button
         onClick={handleLogout}
         className="mt-10 bg-black text-white px-4 py-2 rounded-xl w-full transition-all duration-300
