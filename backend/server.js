@@ -7,6 +7,8 @@ const authRoutes = require("./routes/authRoutes");
 const twinRoutes = require("./routes/twinRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const Twin = require("./models/twin");
+const calculateRisk = require("./utils/riskEngine");
+const scanWebsite = require("./utils/websiteScanner");
 
 const app = express();
 
@@ -27,7 +29,36 @@ app.delete("/api/twins/user/:userId", async (req, res) => {
     res.status(500).json({ error: "Failed to clear history" });
   }
 });
+// 🧩 USER RISK
+app.post("/api/user-risk", (req, res) => {
+  try {
+    const result = calculateRisk(req.body);
+    res.json(result);
+  } catch (err) {
+    console.error("User risk error:", err);
+    res.status(500).json({ error: "User risk failed" });
+  }
+});
 
+// 🌐 WEBSITE RISK
+app.post("/api/website-risk", async (req, res) => {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ error: "URL is required" });
+    }
+
+    const result = await scanWebsite(url);
+    res.json(result);
+
+  } catch (err) {
+    console.error("Website scan error:", err);
+    res.status(500).json({ error: "Website scan failed" });
+  }
+});
+
+// =========================
 // 🔗 Mongo
 mongoose.connect(process.env.MONGO_URI, {
   dbName: "privacy_twin"

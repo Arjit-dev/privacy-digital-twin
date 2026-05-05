@@ -1,4 +1,5 @@
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import { Brush } from "recharts";
 import "react-circular-progressbar/dist/styles.css";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -66,7 +67,7 @@ const generateSuggestions = (data) => {
     suggestions.push("Enable automatic updates to stay protected.");
   }
 
-  if (data.thirdPartyApps > 20) {
+  if (data.thirdPartyApps > 5) {
     suggestions.push("Reduce the number of third-party apps connected.");
   }
 
@@ -276,6 +277,7 @@ function App() {
       const profileRes = await axios.get(
         `http://127.0.0.1:5000/api/profile/${userId}`
       );
+      
 
       const profile = profileRes.data;
 
@@ -313,6 +315,7 @@ function App() {
         "http://127.0.0.1:8000/predict",
         payload
       );
+      console.log("🔥 FULL RESULT:", JSON.stringify(res.data, null, 2));
 
       setResult(res.data);
       fetchHistory();
@@ -348,6 +351,10 @@ const clearHistory = async () => {
   }));
 
   const isDark = theme === "dark";
+  const websiteScore = result?.websiteScan?.websiteRiskScore || 0;
+  console.log("Website score:", websiteScore, "Issues:", result?.websiteScan?.issues);
+  console.log("hello")
+  console.log(result);
 
   // 🔐 LOGIN UI
   if (!isLoggedIn) {
@@ -433,7 +440,14 @@ const clearHistory = async () => {
     </div>
   );
 }
-
+// 🔥 Date formatter
+const formatDate = (date) => {
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }); 
+};
   // 🧠 MAIN DASHBOARD
   return (
   <div
@@ -573,32 +587,32 @@ hover:border hover:border-red-500"
           <div className="col-span-2 grid grid-cols-2 gap-y-3 gap-x-10 mt-2">
 
   <label className="flex items-center gap-3 text-sm text-gray-450">
-    <input type="checkbox" name="publicProfile" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    <input type="checkbox" name="publicProfile" onChange={handleChange} checked={twinData.publicProfile} className="accent-blue-500 w-4 h-4"/>
     Public Profile
   </label>
 
   <label className="flex items-center gap-3 text-sm text-gray-450">
-    <input type="checkbox" name="locationSharing" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    <input type="checkbox" name="locationSharing" onChange={handleChange} checked={twinData.locationSharing} className="accent-blue-500 w-4 h-4"/>
     Location Sharing
   </label>
 
   <label className="flex items-center gap-3 text-sm text-gray-450">
-    <input type="checkbox" name="twoFactorAuth" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    <input type="checkbox" name="twoFactorAuth" onChange={handleChange} checked={twinData.twoFactorAuth} className="accent-blue-500 w-4 h-4"/>
     2FA
   </label>
 
   <label className="flex items-center gap-3 text-sm text-gray-450">
-    <input type="checkbox" name="publicWifiUsage" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    <input type="checkbox" name="publicWifiUsage" onChange={handleChange} checked={twinData.publicWifiUsage} className="accent-blue-500 w-4 h-4"/>
     Public WiFi
   </label>
 
   <label className="flex items-center gap-3 text-sm text-gray-450">
-    <input type="checkbox" name="deviceEncrypted" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    <input type="checkbox" name="deviceEncrypted" onChange={handleChange} checked={twinData.deviceEncrypted} className="accent-blue-500 w-4 h-4"/>
     Device Encrypted
   </label>
 
   <label className="flex items-center gap-3 text-sm text-gray-450">
-    <input type="checkbox" name="autoUpdates" onChange={handleChange} className="accent-blue-500 w-4 h-4"/>
+    <input type="checkbox" name="autoUpdates" onChange={handleChange} checked={twinData.autoUpdates} className="accent-blue-500 w-4 h-4"/>
     Auto Updates
   </label>
 
@@ -694,6 +708,51 @@ hover:border hover:border-red-500"
     >
       {result.finalRiskLevel} Risk
     </p>
+      {/* <p style={{color: "white"}}>
+  score: {result?.websiteScan?.websiteRiskScore} | issues: {JSON.stringify(result?.websiteScan?.issues)}
+</p> */}
+  </div>
+)}
+{/* 🔥 WEBSITE CAUTIONS (ADD ONLY) */}
+{result.lolscore >= 20 && result && result.cautions?.length > 0 &&  (
+  <div className="bg-white/5 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-white/10">
+
+    {/* Title */}
+    <h4 className={`text-lg font-semibold mb-4 ${
+      theme === "dark" ? "text-white" : "text-black"
+    }`}>
+      ⚠️ Website Warnings
+    </h4>
+
+    {/* Main Warning Banner */}
+    <div
+      className={`mb-4 p-3 rounded-xl font-medium ${
+        result.lolscore >= 70
+          ? "bg-red-500/20 text-red-300 border border-red-500"
+          : result.lolscore >= 40
+          ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500"
+          : "bg-green-500/20 text-green-300 border border-green-500"
+      }`}
+    >
+      {result.lolscore >= 70
+        ? "🚨 High Risk Website — Avoid entering sensitive data"
+        : result.lolscore >= 40
+        ? "⚠️ This website may be unsafe — Proceed carefully"
+        : "✅ Website appears safe"}
+    </div>
+
+    {/* Individual cautions */}
+    <ul className="space-y-3">
+      {result?.cautions.map((caution, i) => (
+        <li
+          key={i}
+          className="p-3 rounded-xl border-l-4 border-yellow-500 bg-yellow-500/10 text-yellow-300 flex gap-3 items-start"
+        >
+          <span>⚠️</span>
+          <span className="text-sm leading-relaxed">{caution}</span>
+        </li>
+      ))}
+    </ul>
 
   </div>
 )}
@@ -759,17 +818,18 @@ hover:border hover:border-red-500"
       Risk Trend
     </h3>
 
-    <div style={{ width: "100%", height: 300 }}>
-      <ResponsiveContainer>
+    <div style={{ width: "100%", height: 320 }}>
+      <ResponsiveContainer width="100%" height="100%">
 
         <LineChart
           data={history.map((item, index) => ({
-            name: `Sim ${index + 1}`,
+            sim: `Sim ${index + 1}`,
+            date: formatDate(item.createdAt),
             score: item.riskScore
           }))}
         >
 
-          {/* 🔥 Gradient (subtle cyan area) */}
+          {/* 🔥 Gradient */}
           <defs>
             <linearGradient id="colorRisk" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3}/>
@@ -780,19 +840,20 @@ hover:border hover:border-red-500"
           {/* Grid */}
           <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
 
-          {/* Axes */}
+          {/* X Axis (only Sim shown) */}
           <XAxis
-            dataKey="name"
+            dataKey="sim"
             stroke="#64748b"
-            tick={{ fill: "#94a3b8" }}
+            tick={{ fill: "#94a3b8", fontSize: 12 }}
           />
 
+          {/* Y Axis */}
           <YAxis
             stroke="#64748b"
             tick={{ fill: "#94a3b8" }}
           />
 
-          {/* Tooltip */}
+          {/* 🔥 Tooltip (shows date) */}
           <Tooltip
             contentStyle={{
               background: "rgba(15, 23, 42, 0.95)",
@@ -801,6 +862,13 @@ hover:border hover:border-red-500"
               color: "#fff"
             }}
             labelStyle={{ color: "#94a3b8" }}
+            formatter={(value) => [`Risk: ${value}`]}
+            labelFormatter={(label, payload) => {
+              if (payload && payload.length) {
+                return `${label} • ${payload[0].payload.date}`;
+              }
+              return label;
+            }}
           />
 
           {/* Area */}
@@ -811,7 +879,7 @@ hover:border hover:border-red-500"
             fill="url(#colorRisk)"
           />
 
-          {/* 🔥 LINE (constant cyan) */}
+          {/* Line */}
           <Line
             type="monotone"
             dataKey="score"
@@ -820,9 +888,9 @@ hover:border hover:border-red-500"
             dot={(props) => {
               const { cx, cy, payload } = props;
 
-              let color = "#22c55e"; // low
-              if (payload.score > 70) color = "#ef4444"; // high
-              else if (payload.score > 40) color = "#facc15"; // medium
+              let color = "#22c55e";
+              if (payload.score > 70) color = "#ef4444";
+              else if (payload.score > 40) color = "#facc15";
 
               return (
                 <circle
@@ -857,6 +925,15 @@ hover:border hover:border-red-500"
             }}
             isAnimationActive={true}
             animationDuration={800}
+          />
+
+          {/* 🔥 SLIDER */}
+          <Brush
+            dataKey="sim"
+            height={30}
+            stroke="#38bdf8"
+            travellerWidth={10}
+            startIndex={Math.max(history.length - 10, 0)}
           />
 
         </LineChart>

@@ -3,9 +3,9 @@ const router = express.Router();
 const axios = require("axios");
 
 const Twin = require("../models/twin");
-const calculateRisk = require("../riskEngine");
+const calculateRisk = require("../utils/riskEngine");
 const checkPasswordStrength = require("../passwordStrength");
-const scanWebsite = require("../websiteScanner");
+const scanWebsite = require("../utils/websiteScanner");
 
 
 /* =====================================================

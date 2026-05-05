@@ -27,7 +27,11 @@ const twinSchema = new mongoose.Schema({
   autoUpdates: Boolean,
 
   riskScore: Number,
-  riskLevel: String
+  riskLevel: String,
+  suggestions: {
+    type: [String],
+    default: []
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Twin", twinSchema);

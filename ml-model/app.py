@@ -16,15 +16,14 @@ model = joblib.load(os.path.join(BASE_DIR, "risk_model.pkl"))
 def predict():
     try:
         data = request.json
-        print("📥 Received from Extension:", data)
+        print("📥 Received:", data)
 
-        # 🔥 VALIDATE userId
         if "userId" not in data:
             return jsonify({"error": "userId missing"}), 400
 
-        print("🔥 FINAL userId going to Node:", data["userId"])
-
-        # 🔹 Feature extraction
+        # =====================================================
+        # 🔮 ML PREDICTION
+        # =====================================================
         features = [[
             int(data["publicProfile"]),
             int(data["locationSharing"]),
@@ -36,128 +35,156 @@ def predict():
             int(not data["autoUpdates"])
         ]]
 
-        # 🔮 ML Prediction
         pred = model.predict(features)[0]
         levels = ["Low", "Medium", "High"]
         ml_risk = levels[pred]
 
-        # =========================================================
-        # 🔥 HYBRID MULTI-FACTOR RISK ADJUSTMENT (NEW - SAFE ADDITION)
-        # =========================================================
+        # =====================================================
+        # 🔗 CALL NODE MODULES
+        # =====================================================
+        user_res = requests.post(
+            "http://127.0.0.1:5000/api/user-risk",
+            json=data
+        ).json()
 
-        risk_points = 0
+        website_res = requests.post(
+            "http://127.0.0.1:5000/api/website-risk",
+            json={"url": data.get("url")}
+        ).json()
 
-        # 🔹 Third-party apps
-        if data["thirdPartyApps"] > 25:
-            risk_points += 2
-        elif data["thirdPartyApps"] > 15:
-            risk_points += 1
+        user_score = min(100, user_res.get("riskScore", 0))
+        website_score = min(100, website_res.get("websiteRiskScore", 0))
+        cautionx = website_res.get("issues", [])
 
-        # 🔹 Password strength
-        if data["passwordStrength"] == "weak":
-            risk_points += 1
 
-        # 🔹 No 2FA
-        if not data["twoFactorAuth"]:
-            risk_points += 1
 
-        # 🔹 Public profile
-        if data["publicProfile"]:
-            risk_points += 1
+        print("🧠 User Score:", user_score)
+        print("🌐 Website Score:", website_score)
 
-        # 🔹 Location sharing
-        if data["locationSharing"]:
-            risk_points += 1
+        # =====================================================
+        # ⚡ BASE FUSION
+        # =====================================================
+        ml_score_map = {"Low": 20, "Medium": 50, "High": 80}
+        ml_score = ml_score_map[ml_risk]
 
-        # 🔹 Public WiFi usage
-        if data["publicWifiUsage"]:
-            risk_points += 1
+        risk_score = (
+            0.40 * user_score +
+            0.45 * website_score +
+            0.15 * ml_score
+        )
 
-        # 🔹 Device security
-        if not data["deviceEncrypted"]:
-            risk_points += 1
-
-        # 🔹 No auto updates
-        if not data["autoUpdates"]:
-            risk_points += 1
-
-        # 🔥 Adjust ML result (refinement, not replacement)
-        if risk_points >= 4:
-            ml_risk = "High"
-            pred = max(pred, 2)
-        elif risk_points >= 2:
-            if ml_risk == "Low":
-                ml_risk = "Medium"
-                pred = max(pred, 1)
-
-        # =========================================================
-
-        # 🌐 Site Risk
-        site_risk = data.get("siteRisk", "Low")
-
-        # 🔥 FINAL RISK
-        if site_risk == "High" or ml_risk == "High":
-            final_risk = "High"
-        elif site_risk == "Medium" or ml_risk == "Medium":
-            final_risk = "Medium"
-        else:
-            final_risk = "Low"
-
-        # 🔥 Risk Score
-        risk_score = int(pred * 30 + 20)
-
-        if site_risk == "High":
-            risk_score += 30
-        elif site_risk == "Medium":
+        # =====================================================
+        # 🔥 AMPLIFICATION
+        # =====================================================
+        if website_score >= 50:
             risk_score += 15
 
-        risk_score = max(0, min(100, risk_score))
+        if user_score >= 60:
+            risk_score += 10
 
-        # 🔹 Create twin data
+        if website_score >= 40 and user_score >= 40:
+            risk_score += 10
+
+        # =====================================================
+        # 🚨 MULTIPLIER
+        # =====================================================
+        if website_score >= 60:
+            risk_score *= 1.25
+
+        if user_score >= 70:
+            risk_score *= 1.2
+
+        if website_score >= 60 and user_score >= 60:
+            risk_score *= 1.3
+
+        # Clamp
+        risk_score = int(max(0, min(100, risk_score)))
+
+        # =====================================================
+        # 📊 FINAL LEVEL
+        # =====================================================
+        if risk_score < 30:
+            final_risk = "Low"
+        elif risk_score < 60:
+            final_risk = "Medium"
+        else:
+            final_risk = "High"
+
+        # =====================================================
+        # 🔥 WEBSITE CAUTIONS (FIXED)
+        # =====================================================
+        cautions = []
+
+        if website_score >= 70:
+            cautions.append("🚨 Highly suspicious website. Avoid entering sensitive data.")
+        elif website_score >= 50:
+            cautions.append("⚠️ This website may be unsafe. Proceed with caution.")
+
+        for issue in website_res.get("issues", []):
+            issue_lower = issue.lower()
+
+            if "keyword" in issue_lower:
+                cautions.append("Suspicious domain detected — possible phishing.")
+            elif "https" in issue_lower:
+                cautions.append("Website is not secure (no HTTPS).")
+            elif "headers" in issue_lower:
+                cautions.append("Website lacks proper security protections.")
+            elif "ip address" in issue_lower:
+                cautions.append("🚨+Using IP address instead of domain — high risk.")
+
+        # =====================================================
+        # 📦 TWIN DATA
+        # =====================================================
         twin_data = {
-            "userId": data["userId"],
+    "userId": data["userId"],
 
-            "name": data.get("name", "Extension User"),
-            "email": data.get("email", "extension@user.com"),
+    "name": data.get("name", "Extension User"),
+    "email": data.get("email", "extension@user.com"),
 
-            "websiteURL": data.get("url", "unknown"),
+    "websiteURL": data.get("url", "unknown"),
 
-            "websiteScan": {
-                "websiteRiskScore": 50,
-                "websiteRiskLevel": site_risk,
-                "issues": []
-            },
+    # 🌐 Website Scan
+    "websiteScan": website_res,
 
-            "publicProfile": bool(data["publicProfile"]),
-            "locationSharing": bool(data["locationSharing"]),
-            "thirdPartyApps": data["thirdPartyApps"],
+    # 👤 User factors (ADD THESE BACK)
+    "publicProfile": bool(data["publicProfile"]),
+    "locationSharing": bool(data["locationSharing"]),
+    "thirdPartyApps": data["thirdPartyApps"],
 
-            "passwordStrength": data["passwordStrength"],
-            "twoFactorAuth": data["twoFactorAuth"],
+    "passwordStrength": data["passwordStrength"],
+    "twoFactorAuth": data["twoFactorAuth"],
 
-            "publicWifiUsage": data["publicWifiUsage"],
-            "deviceEncrypted": data["deviceEncrypted"],
-            "autoUpdates": data["autoUpdates"],
+    "publicWifiUsage": data["publicWifiUsage"],
+    "deviceEncrypted": data["deviceEncrypted"],
+    "autoUpdates": data["autoUpdates"],
 
-            "riskScore": risk_score,
-            "riskLevel": final_risk
-        }
+    # 📊 Scores
+    "riskScore": risk_score,
+    "riskLevel": final_risk,
+    "suggestions": user_res.get("suggestions", []),
+}
 
-        # 🔗 Send to Node backend
+        # =====================================================
+        # 🔗 SAVE TO NODE
+        # =====================================================
         try:
             res = requests.post(
                 "http://127.0.0.1:5000/api/twins/from-extension",
                 json=twin_data
             )
-            print("✅ Sent to Node:", res.status_code)
+            print("✅ Saved:", res.status_code)
         except Exception as e:
             print("❌ Node error:", e)
 
-        # 📤 Response
+        # =====================================================
+        # 📤 RESPONSE
+        # =====================================================
         return jsonify({
             "mlRiskLevel": ml_risk,
             "finalRiskLevel": final_risk,
-            "riskScore": risk_score
+            "riskScore": risk_score,
+            "cautions": cautionx,
+            "lolscore": website_score
         })
 
     except Exception as e:

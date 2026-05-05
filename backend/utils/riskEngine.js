@@ -3,7 +3,7 @@ function calculateRisk(data) {
   let riskScore = 0;
   let suggestions = [];
 
-  // Profile exposure
+  // 🔹 Profile exposure
   if (data.publicProfile) {
     riskScore += 15;
     suggestions.push("Consider making your profile private.");
@@ -14,78 +14,60 @@ function calculateRisk(data) {
     suggestions.push("Disable unnecessary location sharing.");
   }
 
-  // Third party apps
-  if (data.thirdPartyApps > 5) {
-    riskScore += 15;
-    suggestions.push("Reduce the number of connected third-party apps.");
-  } else if (data.thirdPartyApps > 2) {
-    riskScore += 8;
+  // 🔹 Third party apps
+  if (data.thirdPartyApps > 0) {
+
+  // Base risk
+  riskScore += Math.min(25, data.thirdPartyApps * 3);
+
+  // Extra penalty for high numbers
+  if (data.thirdPartyApps > 10) {
+    riskScore += 10;
+    suggestions.push("Too many third-party apps connected.");
   }
 
-  // Password strength
+  if (data.thirdPartyApps > 20) {
+    riskScore += 10;
+    suggestions.push("Extremely high number of third-party apps — high risk.");
+  }
+}
+
+  // 🔹 Password strength
   if (data.passwordStrength === "weak") {
     riskScore += 25;
     suggestions.push("Use a stronger password with numbers and symbols.");
-  }
-
-  if (data.passwordStrength === "medium") {
+  } else if (data.passwordStrength === "medium") {
     riskScore += 10;
   }
 
-  // Two-factor authentication
+  // 🔹 Two-factor authentication
   if (!data.twoFactorAuth) {
     riskScore += 15;
     suggestions.push("Enable two-factor authentication for better security.");
   }
 
-  // Public WiFi
+  // 🔹 Public WiFi usage
   if (data.publicWifiUsage) {
     riskScore += 10;
     suggestions.push("Avoid using public WiFi without a VPN.");
   }
 
-  // Device encryption
+  // 🔹 Device encryption
   if (!data.deviceEncrypted) {
     riskScore += 15;
     suggestions.push("Enable device encryption.");
   }
 
-  // Auto updates
+  // 🔹 Auto updates
   if (!data.autoUpdates) {
     riskScore += 10;
     suggestions.push("Enable automatic security updates.");
   }
 
-  // WEBSITE RISK INTEGRATION
-  if (data.websiteScan) {
-
-    const siteRisk = data.websiteScan.websiteRiskScore;
-
-    if (siteRisk > 20) {
-      riskScore += 20;
-      suggestions.push("The scanned website has major security issues.");
-    }
-    else if (siteRisk > 10) {
-      riskScore += 10;
-      suggestions.push("The scanned website has moderate security issues.");
-    }
-    else if (siteRisk > 0) {
-      riskScore += 5;
-    }
-  }
-
-  // Determine risk level
-  let riskLevel = "Low";
-
-  if (riskScore > 70) {
-    riskLevel = "High";
-  } else if (riskScore > 40) {
-    riskLevel = "Medium";
-  }
-
+  // Normalize score (0–100)
+  riskScore = Math.min(100, riskScore);
   return {
     riskScore,
-    riskLevel,
     suggestions
   };
 }
