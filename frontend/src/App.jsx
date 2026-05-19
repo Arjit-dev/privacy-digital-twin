@@ -714,7 +714,7 @@ hover:border hover:border-red-500"
   </div>
 )}
 {/* 🔥 WEBSITE CAUTIONS (ADD ONLY) */}
-{result.lolscore >= 20 && result && result.cautions?.length > 0 &&  (
+{result?.lolscore >= 20 && result?.cautions?.length > 0 && (
   <div className="bg-white/5 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-white/10">
 
     {/* Title */}
